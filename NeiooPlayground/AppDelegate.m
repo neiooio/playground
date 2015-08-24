@@ -7,9 +7,12 @@
 //
 
 #import "AppDelegate.h"
+#import "HXMenuViewController.h"
+#import "Config.h"
+#import "UIColor+CustomColor.h"
 
 @interface AppDelegate ()
-
+@property(strong, nonatomic)HXMenuViewController * menuVC;
 @end
 
 @implementation AppDelegate
@@ -17,6 +20,31 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    // For splash page
+    sleep(2);
+    
+    // For local push
+    
+    if (iOS8) {
+        UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:UIUserNotificationTypeBadge|UIUserNotificationTypeSound|UIUserNotificationTypeAlert categories:nil];
+        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+    }else{
+        [application registerForRemoteNotificationTypes:UIRemoteNotificationTypeAlert];
+    }
+    
+    // Navi appearence
+    [self customizeAppearance];
+    
+    // init menu vc
+    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    self.menuVC = [[HXMenuViewController alloc]init];
+    
+    UINavigationController * nav = [[UINavigationController alloc]initWithRootViewController:self.menuVC];
+    self.window.rootViewController = nav;
+    self.window.backgroundColor = [UIColor whiteColor];
+    [self.window makeKeyAndVisible];
+    
     return YES;
 }
 
@@ -40,6 +68,25 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+- (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings {
+    [application registerForRemoteNotifications];
+}
+
+- (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification
+{
+    //    [self showNotification:notification.alertBody];
+    NSLog(@"AppDelegate didReceiveLocalNotification %@", notification.alertBody);
+}
+
+#pragma mark - custom appearence
+
+-(void)customizeAppearance
+{
+    [[UINavigationBar appearance] setBarTintColor:[UIColor color6]];
+    [[UINavigationBar appearance] setTintColor:[UIColor color10]];
+    
 }
 
 @end

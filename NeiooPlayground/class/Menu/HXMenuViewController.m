@@ -41,7 +41,7 @@ typedef enum {
     HXMenuListOptionBuyNeiooBeacon
 } HXMenuListOption;
 
-@interface HXMenuViewController ()
+@interface HXMenuViewController ()<HXTriggerManagerDelegate>
 
 @end
 
@@ -50,14 +50,15 @@ typedef enum {
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self initView];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(showNotification)
+                                                 name:@"openLocalPush"
+                                               object:nil];
 }
 
-- (void)viewWillAppear:(BOOL)animated
+- (void)viewDidAppear:(BOOL)animated
 {
-    if ([HXTriggerManager manager].delegate) {
-        [HXTriggerManager manager].delegate = nil;
-        [[HXTriggerManager manager] stopTrigger];
-    }
+    [[Neioo shared] setDelegate:nil];
 }
 
 #pragma mark - Init
@@ -167,6 +168,16 @@ typedef enum {
         }
         default:
             break;
+    }
+}
+
+- (void)showNotification
+{
+    NeiooCampaign *campaign = [HXTriggerManager manager].campaignFromNotification;
+    if (campaign) {
+        [HXTriggerManager manager].delegate = self;
+        [[HXTriggerManager manager] triggerCampaign:campaign];
+        [HXTriggerManager manager].campaignFromNotification = nil;
     }
 }
 

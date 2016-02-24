@@ -15,7 +15,9 @@
 #import <CoreMotion/CoreMotion.h>
 #import <AudioToolbox/AudioToolbox.h>
 
-@interface HXShakeViewController ()<HXTriggerManagerDelegate,HXDialogViewDelegate>
+#import "Config.h"
+
+@interface HXShakeViewController ()<HXTriggerManagerDelegate,HXDialogViewDelegate,NeiooDelegate>
 @property (strong, nonatomic) HXRadarView *radarView;
 @property (strong, nonatomic) HXDialogView *shakeDialog;
 @property (strong, nonatomic) HXDialogView *couponDialog;
@@ -31,9 +33,8 @@
     
     [self initView];
     
+    [self initNeioo];
     [HXTriggerManager manager].delegate = self;
-    [[HXTriggerManager manager] startTrigger];
-    [[HXTriggerManager manager] setupSenario:HXTriggeredSenarioShake];
     
     [self.radarView startAnimation];
     
@@ -76,6 +77,23 @@
 
 #pragma mark - Init
 
+- (void)initNeioo
+{
+    [[Neioo shared] setDelegate:self];
+    [[Neioo shared] clearCriteriaData];
+    [[Neioo shared] disable];
+    
+#ifdef NEIOO_BEACON_UUID
+    [[Neioo shared]enableWithMonitorRegion:[[CLBeaconRegion alloc] initWithProximityUUID:
+                                            [[NSUUID alloc]initWithUUIDString:NEIOO_BEACON_UUID]
+                                                                              identifier:@"Neioo Tester"]];
+#endif
+    
+#ifndef NEIOO_BEACON_UUID
+    [[Neioo shared] enable];
+#endif
+}
+
 - (void)initView
 {
     self.view.backgroundColor = [UIColor color6];
@@ -90,12 +108,18 @@
     [self.view addSubview:self.radarView];
 }
 
-#pragma mark - Trigger delegate
+#pragma mark - Neioo delegate
 
 - (void)neioo:(Neioo *)neioo didEnterSpace:(NeiooSpace *)space
 {
     [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_yellow"]];
     [self.radarView updateCircleColor:[UIColor color15]];
+}
+
+- (void)neioo:(Neioo *)neioo didLeaveSpace:(NeiooSpace *)space
+{
+    [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_grey"]];
+    [self.radarView updateCircleColor:[UIColor color5]];
 }
 
 - (void)inShakeRangeWithCampaign:(NeiooCampaign *)campaign
@@ -188,13 +212,13 @@
         // play
         AudioServicesPlaySystemSound(soundID);
         
-//        dispatch_queue_t myBackgroundQ = dispatch_queue_create("backgroundDelayQueue", NULL);
-//        dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, .5 * NSEC_PER_SEC);
-//        dispatch_after(delay, myBackgroundQ, ^(void){
-//            dispatch_async(dispatch_get_main_queue(), ^{
-//                [self shakeSound];
-//            });
-//        });
+        dispatch_queue_t myBackgroundQ = dispatch_queue_create("backgroundDelayQueue", NULL);
+        dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, .5 * NSEC_PER_SEC);
+        dispatch_after(delay, myBackgroundQ, ^(void){
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self shakeSound];
+            });
+        });
     }
     else
     {

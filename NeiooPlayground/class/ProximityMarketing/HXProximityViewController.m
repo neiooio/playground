@@ -9,10 +9,12 @@
 #import "HXProximityViewController.h"
 #import "HXRadarView.h"
 #import "HXTriggerManager.h"
+#import "Neioo.h"
 
+#import "Config.h"
 #import "UIColor+CustomColor.h"
 
-@interface HXProximityViewController ()<HXTriggerManagerDelegate>
+@interface HXProximityViewController ()<HXTriggerManagerDelegate,NeiooDelegate>
 @property (strong, nonatomic) HXRadarView *radarView;
 @end
 
@@ -22,10 +24,9 @@
     [super viewDidLoad];
     
     [self initView];
-    
-    [[HXTriggerManager manager] setupSenario:HXTriggeredSenarioProximity];
+    [self initNeioo];
+
     [HXTriggerManager manager].delegate = self;
-    [[HXTriggerManager manager] startTrigger];
     
     [self.radarView startAnimation];
     
@@ -42,6 +43,22 @@
 
 #pragma mark - Init
 
+- (void)initNeioo
+{
+    [[Neioo shared] setDelegate:self];
+    [[Neioo shared] clearCriteriaData];
+    [[Neioo shared] disable];
+#ifdef NEIOO_BEACON_UUID
+    [[Neioo shared]enableWithMonitorRegion:[[CLBeaconRegion alloc] initWithProximityUUID:
+                                            [[NSUUID alloc]initWithUUIDString:NEIOO_BEACON_UUID]
+                                                                              identifier:@"Neioo Tester"]];
+#endif
+    
+#ifndef NEIOO_BEACON_UUID
+    [[Neioo shared] enable];
+#endif
+}
+
 - (void)initView
 {
     self.view.backgroundColor = [UIColor color6];
@@ -57,12 +74,23 @@
     
 }
 
-#pragma mark - Trigger delegate
+#pragma mark - Neioo delegate
 
 - (void)neioo:(Neioo *)neioo didEnterSpace:(NeiooSpace *)space
 {
     [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_green"]];
     [self.radarView updateCircleColor:[UIColor color1]];
+}
+
+- (void)neioo:(Neioo *)neioo didLeaveSpace:(NeiooSpace *)space
+{
+    [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_grey"]];
+    [self.radarView updateCircleColor:[UIColor color5]];
+}
+
+- (void)campaignTriggered:(NeiooCampaign *)campaign beacon:(NeiooBeacon *)beacon
+{
+    [[HXTriggerManager manager]triggerCampaign:campaign];
 }
 
 #pragma mark - Application

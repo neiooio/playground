@@ -15,9 +15,8 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import <AudioToolbox/AudioToolbox.h>
 
-@interface HXTriggerManager()<NeiooDelegate>
+@interface HXTriggerManager()
 @property (strong, nonatomic) MPMoviePlayerController *moviePlayer;
-@property HXTriggeredSenario senario;
 @end
 
 @implementation HXTriggerManager
@@ -38,114 +37,9 @@
 {
     self = [super init];
     if (self) {
-        [Neioo setUpAppKey:NEIOO_APP_KEY delegate:self withLocationAuthorization:NeiooLocationAuthorizationAlways];
+        
     }
     return self;
-}
-
-- (void)startTrigger
-{
-    [[Neioo shared] enable];
-//    [[NSNotificationCenter defaultCenter] addObserver:self
-//                                             selector:@selector(beacon:)
-//                                                 name:SBKBeaconInRangeStatusUpdatedNotification
-//                                               object:nil];
-}
-
-- (void)stopTrigger
-{
-    [[Neioo shared] disable];
-    [[Neioo shared] clearCriteriaData];
-}
-
-- (void)setupSenario:(HXTriggeredSenario)senario
-{
-    _senario = senario;
-}
-
-- (void)beacon:(NSNotification *)notification {
-    
-    /*Get SBKBeacon object*/
-    SBKBeacon *beacon = notification.object;
-    
-    /*Determine whether 'applicationState' is 'UIApplicationStateBackground' */
-    if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground){
-        /*Determine whether the device is in range*/
-        if (beacon.inRange) {
-            /*Local notification*/
-            UILocalNotification *notification = [[UILocalNotification alloc] init];
-            NSString * message = @"Enter";
-            notification.alertBody = message;
-            [[UIApplication sharedApplication] scheduleLocalNotification:notification];
-        }
-        else{
-            UILocalNotification *notification = [[UILocalNotification alloc] init];
-            NSString * message = @"Leave";
-            notification.alertBody = message;
-            [[UIApplication sharedApplication] scheduleLocalNotification:notification];
-        }
-    }
-}
-
-#pragma mark - neiooDelegate
-
--(void)campaignTriggered:(NeiooCampaign *)campaign beacon:(NeiooBeacon *)beacon
-{
-    //Don't show triggered campaign in shake senario
-    ////////////////////////////////////////////////
-    
-    if (_senario == HXTriggeredSenarioShake)return;
-    
-    //Don't show triggered campaign in target marketing senario
-    ////////////////////////////////////////////////
-    
-    if (_senario == HXTriggeredSenarioTarget) {
-        if (!campaign.criterias) return;
-        if (!campaign.criterias.count) return;
-    }
-    
-    if ([self.delegate respondsToSelector:@selector(campaignTriggered:beacon:)]) {
-        [self.delegate campaignTriggered:campaign beacon:beacon];
-    }
-    for (NeiooAction *action in campaign.actions){
-        NSLog(@"Campaign triggered by SDK \n %@",[action.actionDetail description]);
-        
-        [self triggerSound];
-        [self triggerAction:action];
-    }
-    
-}
-
-- (void)inShakeRangeWithCampaign:(NeiooCampaign *)campaign
-{
-    NSLog(@"in shake range...");
-    if ([self.delegate respondsToSelector:@selector(inShakeRangeWithCampaign:)]) {
-        [self.delegate inShakeRangeWithCampaign:campaign];
-    }
-}
-
-- (void)outOfShakeRangeWithCampaign:(NeiooCampaign *)campaign
-{
-    NSLog(@"out of shake range...");
-    if ([self.delegate respondsToSelector:@selector(outOfShakeRangeWithCampaign:)]) {
-        [self.delegate outOfShakeRangeWithCampaign:campaign];
-    }
-}
-
-- (void)neioo:(Neioo *)neioo didEnterSpace:(NeiooSpace *)space
-{
-    NSLog(@"Enter Space");
-    if ([self.delegate respondsToSelector:@selector(neioo:didEnterSpace:)]) {
-        [self.delegate neioo:neioo didEnterSpace:space];
-    }
-}
-
-- (void)neioo:(Neioo *)neioo didLeaveSpace:(NeiooSpace *)space
-{
-    NSLog(@"Leave Space");
-    if ([self.delegate respondsToSelector:@selector(neioo:didLeaveSpace:)]) {
-        [self.delegate neioo:neioo didLeaveSpace:space];
-    }
 }
 
 #pragma mark - Helper
@@ -164,6 +58,16 @@
     }
 }
 
+- (void)triggerCampaign:(NeiooCampaign *)campaign
+{
+    for (NeiooAction *action in campaign.actions){
+        NSLog(@"Campaign triggered by SDK \n %@",[action.actionDetail description]);
+        
+        [self triggerSound];
+        [self triggerAction:action];
+    }
+}
+
 - (void)triggerAction:(NeiooAction *)action
 {
     if ([action.type isEqualToString:@"show_image"])
@@ -175,7 +79,7 @@
             urls = action.actionDetail[@"url"];
         }
         
-        NSInteger randomInt = (_senario == HXTriggeredSenarioShake) ? arc4random() % urls.count : 0;
+        NSInteger randomInt = arc4random() % urls.count;
         
         HXImageAlignH alignH = HXImageAlignHCenter;
         if ([action.actionDetail[@"align"] isEqualToString:@"left"]) alignH = HXImageAlignHLeft;
@@ -223,12 +127,6 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             [alertView show];
         });
-        
-        UILocalNotification *notification = [[UILocalNotification alloc] init];
-        notification.alertBody = action.actionDetail[@"push_text"];
-        notification.soundName = UILocalNotificationDefaultSoundName;
-        notification.fireDate = [NSDate date];
-        [[UIApplication sharedApplication] scheduleLocalNotification:notification];
     }
 }
 

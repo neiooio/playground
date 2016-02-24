@@ -17,7 +17,7 @@
 
 #define kNavigationBarHeight 44.f
 
-#define NEIOO_APP_KEY @"" /* Your App Key */
+#define NEIOO_APP_KEY @"" /* Your app key */
 
 #define iOS8 ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0)
 

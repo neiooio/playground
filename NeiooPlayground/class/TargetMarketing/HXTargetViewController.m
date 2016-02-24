@@ -17,7 +17,7 @@
 #import "UIFont+customFont.h"
 #import "Config.h"
 
-@interface HXTargetViewController ()<HXTriggerManagerDelegate,HXNameEntryViewDelegate>
+@interface HXTargetViewController ()<HXTriggerManagerDelegate,HXNameEntryViewDelegate,NeiooDelegate>
 @property (strong, nonatomic) HXRadarView *radarView;
 @property (strong, nonatomic) HXDialogView *nameEntryDialog;
 @property (strong, nonatomic) UILabel *nameLabel;
@@ -44,6 +44,23 @@
 }
 
 #pragma mark - Init
+
+- (void)initNeioo
+{
+    [[Neioo shared] setDelegate:self];
+    [[Neioo shared] clearCriteriaData];
+    [[Neioo shared] disable];
+    
+#ifdef NEIOO_BEACON_UUID
+    [[Neioo shared]enableWithMonitorRegion:[[CLBeaconRegion alloc] initWithProximityUUID:
+                                            [[NSUUID alloc]initWithUUIDString:NEIOO_BEACON_UUID]
+                                                                              identifier:@"Neioo Tester"]];
+#endif
+    
+#ifndef NEIOO_BEACON_UUID
+    [[Neioo shared] enable];
+#endif
+}
 
 - (void)initView
 {
@@ -106,11 +123,11 @@
         
         [self.nameEntryDialog dismiss];
         self.nameLabel.text = nameText;
-        [[Neioo shared] setCriteriaData:nameText forKey:@"name"];
         
-        [[HXTriggerManager manager] setupSenario:HXTriggeredSenarioTarget];
         [HXTriggerManager manager].delegate = self;
-        [[HXTriggerManager manager] startTrigger];
+        
+        [self initNeioo];
+        [[Neioo shared] setCriteriaData:nameText forKey:@"name"];
         
     }
     
@@ -129,6 +146,19 @@
 {
     [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_blue"]];
     [self.radarView updateCircleColor:[UIColor color14]];
+}
+
+- (void)neioo:(Neioo *)neioo didLeaveSpace:(NeiooSpace *)space
+{
+    [self.radarView updateCenterImage:[UIImage imageNamed:@"phone_grey"]];
+    [self.radarView updateCircleColor:[UIColor color5]];
+}
+
+- (void)campaignTriggered:(NeiooCampaign *)campaign beacon:(NeiooBeacon *)beacon
+{
+    if (!campaign.criterias) return;
+    if (!campaign.criterias.count) return;
+    [[HXTriggerManager manager] triggerCampaign:campaign];
 }
 
 #pragma mark - Application

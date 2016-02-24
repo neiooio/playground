@@ -9,6 +9,8 @@
 #import "AppDelegate.h"
 #import "HXMenuViewController.h"
 #import "Config.h"
+#import "Neioo.h"
+#import "HXTriggerManager.h"
 #import "UIColor+CustomColor.h"
 
 @interface AppDelegate ()
@@ -33,6 +35,10 @@
         [application registerForRemoteNotificationTypes:UIRemoteNotificationTypeAlert];
     }
     
+    // Important!!!!!!!!
+    // setup Neioo
+    [Neioo setUpAppKey:NEIOO_APP_KEY];
+    
     // Navi appearence
     [self customizeAppearance];
     
@@ -44,6 +50,19 @@
     self.window.rootViewController = nav;
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
+    
+    // launch app from notification
+    if (launchOptions) {
+        UILocalNotification *notification = launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey];
+        
+        if (notification) {
+            [HXTriggerManager manager].campaignFromNotification = [Neioo getNotificationCampaign:notification];
+            if ([HXTriggerManager manager].campaignFromNotification) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"openLocalPush" object:nil];
+            }
+        }
+        
+    }
     
     return YES;
 }
@@ -70,14 +89,14 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
 
-- (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings {
-    [application registerForRemoteNotifications];
-}
-
 - (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification
 {
-    //    [self showNotification:notification.alertBody];
-    NSLog(@"AppDelegate didReceiveLocalNotification %@", notification.alertBody);
+    if (notification) {
+        [HXTriggerManager manager].campaignFromNotification = [Neioo getNotificationCampaign:notification];
+        if ([HXTriggerManager manager].campaignFromNotification) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"openLocalPush" object:nil];
+        }
+    }
 }
 
 #pragma mark - custom appearence
